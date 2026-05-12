@@ -543,12 +543,21 @@ function processFile(file) {
 
 function processRows(rows) {
   let lastDate = '', lastTime = '';
+  const totalBefore = rows.length;
   rows = rows.map(row => {
     const d = (row['Signup Date'] || '').trim(), t = (row['Signup Time'] || '').trim();
-    if (d) lastDate = d; else row['Signup Date'] = lastDate;
-    if (t) lastTime = t; else row['Signup Time'] = lastTime;
+    if (d && d.toUpperCase() !== 'N/A') lastDate = d; else if (!d || d.toUpperCase() === 'N/A') row['Signup Date'] = lastDate;
+    if (t && t.toUpperCase() !== 'N/A') lastTime = t; else if (!t || t.toUpperCase() === 'N/A') row['Signup Time'] = lastTime;
     return row;
   });
+
+  // Filter out rows that still have no valid date/time (never got carried forward either)
+  rows = rows.filter(row => {
+    const d = (row['Signup Date'] || '').trim().toUpperCase();
+    const t = (row['Signup Time'] || '').trim().toUpperCase();
+    return d && d !== 'N/A' && t && t !== 'N/A';
+  });
+  const skippedCount = totalBefore - rows.length;
 
   const gsheetUrl = document.getElementById('gsheet-url').value.trim();
   const sendFrom  = document.getElementById('send-from').value.trim();
@@ -578,7 +587,7 @@ function processRows(rows) {
     };
   });
 
-  showStatus('load-status', 'success', `✓ Processed ${processedRows.length} assistant${processedRows.length !== 1 ? 's' : ''}.`);
+  showStatus('load-status', 'success', `✓ Processed ${processedRows.length} assistant${processedRows.length !== 1 ? 's' : ''}${skippedCount ? ` · ${skippedCount} skipped (no send date)` : ''}.`);
   renderResults();
 }
 
