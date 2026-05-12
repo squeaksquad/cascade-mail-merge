@@ -406,6 +406,7 @@
       <table>
         <thead>
           <tr>
+            <th>#</th>
             <th>First Name</th>
             <th>Email</th>
             <th>Semester</th>
@@ -546,12 +547,16 @@ function processRows(rows) {
   const totalBefore = rows.length;
   rows = rows.map(row => {
     const d = (row['Signup Date'] || '').trim(), t = (row['Signup Time'] || '').trim();
-    if (d && d.toUpperCase() !== 'N/A') lastDate = d; else if (!d || d.toUpperCase() === 'N/A') row['Signup Date'] = lastDate;
-    if (t && t.toUpperCase() !== 'N/A') lastTime = t; else if (!t || t.toUpperCase() === 'N/A') row['Signup Time'] = lastTime;
+    // Only carry forward truly blank values (grouped time slots).
+    // N/A means explicitly unscheduled — leave it as-is so the filter catches it.
+    if (d && d.toUpperCase() !== 'N/A') lastDate = d;
+    else if (!d) row['Signup Date'] = lastDate;
+    if (t && t.toUpperCase() !== 'N/A') lastTime = t;
+    else if (!t) row['Signup Time'] = lastTime;
     return row;
   });
 
-  // Filter out rows that still have no valid date/time (never got carried forward either)
+  // Remove rows with no valid send date/time (N/A or still blank)
   rows = rows.filter(row => {
     const d = (row['Signup Date'] || '').trim().toUpperCase();
     const t = (row['Signup Time'] || '').trim().toUpperCase();
@@ -594,10 +599,11 @@ function processRows(rows) {
 function renderResults() {
   const tbody = document.getElementById('results-body');
   tbody.innerHTML = '';
-  processedRows.forEach(row => {
+  processedRows.forEach((row, i) => {
     const preview = row.Body.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
     const tr = document.createElement('tr');
     tr.innerHTML = `
+      <td class="mono" style="color:var(--muted)">${i + 1}</td>
       <td><strong>${row['First Name']}</strong></td>
       <td class="mono">${row.Email}</td>
       <td class="mono">${row._sem}</td>
